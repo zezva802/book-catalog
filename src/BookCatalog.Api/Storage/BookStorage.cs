@@ -41,7 +41,7 @@ public class BookStorage : IBookStorage
     {   
         lock (_lock)
         {
-            return _books.Values;
+            return _books.Values.ToList();
         }
     }
 
