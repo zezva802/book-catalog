@@ -29,11 +29,11 @@ public class BookStorage : IBookStorage
 
     }
 
-    public void Delete(int id)
+    public bool Delete(int id)
     {
         lock (_lock)
         {
-            _books.Remove(id);
+            return _books.Remove(id);
         }
 
     }

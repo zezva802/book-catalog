@@ -12,6 +12,6 @@ public interface IBookStorage
 
     Book? Update(int id, Book book);
 
-    void Delete(int id);
+    bool Delete(int id);
 
 }
