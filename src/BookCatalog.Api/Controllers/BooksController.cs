@@ -25,10 +25,11 @@ public class BooksController : ControllerBase
     public IActionResult Get(int id)
     {
         var book = _bookStorage.GetById(id);
-        if(book == null)
+        if (book == null)
         {
             return NotFound();
-        } else
+        }
+        else
         {
             return Ok(book);
         }
@@ -38,14 +39,14 @@ public class BooksController : ControllerBase
     public IActionResult Create([FromBody] Book request)
     {
         var book = _bookStorage.Create(request.Title, request.Author, request.Year);
-        return CreatedAtAction(nameof(Get), new {id = book.Id}, book);
+        return CreatedAtAction(nameof(Get), new { id = book.Id }, book);
     }
 
     [HttpPut("{id}")]
     public IActionResult Update(int id, [FromBody] Book request)
     {
         var book = _bookStorage.Update(id, request);
-        if(book == null)
+        if (book == null)
         {
             return NotFound();
         }
