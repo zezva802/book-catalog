@@ -4,15 +4,30 @@ namespace BookCatalog.Api.Entities;
 
 public class Book : IValidatableObject
 {
+    /// <summary>
+    /// Id is automatically assigned by server.
+    /// Any value sent is ignored.
+    /// </summary>
     public int Id { get; set; }
 
+    /// <summary>
+    /// Title of the work.
+    /// </summary>
     [Required]
-    [StringLength(200)]
+    [StringLength(200, MinimumLength = 1)]
     public required string Title { get; set; }
 
+    /// <summary>
+    /// (Optional) Author of the work.
+    /// Cannot be only whitespaces.
+    /// </summary>
     [StringLength(100, MinimumLength = 2)]
     public string? Author { get; set; }
 
+    /// <summary>
+    /// Year the work was written. Negative numbers are BCE.
+    /// Must be between -3500 and next year.
+    /// </summary>
     [Range(-3500, int.MaxValue, ErrorMessage = "Year must be no earlier than 3500 BCE (-3500)")]
     public int? Year { get; set; }
 
