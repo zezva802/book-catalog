@@ -17,14 +17,24 @@ public class BooksController : ControllerBase
         _logger = logger;
     }
 
+
+    /// <summary>
+    /// Returns all books.
+    /// </summary>
     [HttpGet]
-    public IActionResult GetAll()
+    public ActionResult<IEnumerable<Book>> GetAll()
     {
         return Ok(_bookStorage.GetAll());
     }
 
-    [HttpGet("{id}")]
-    public IActionResult Get(int id)
+    /// <summary>
+    /// Gets a book by its id.
+    /// </summary>
+    /// <param name="id">Id of the book.</param>
+    [HttpGet("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public ActionResult<Book> Get(int id)
     {
         var book = _bookStorage.GetById(id);
         if (book == null)
@@ -35,16 +45,30 @@ public class BooksController : ControllerBase
         return Ok(book);
     }
 
+    /// <summary>
+    /// Creates a book.
+    /// </summary>
+    /// <param name="request">Body of the book to be created.</param>
     [HttpPost]
-    public IActionResult Create([FromBody] Book request)
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    public ActionResult<Book> Create([FromBody] Book request)
     {
         var book = _bookStorage.Create(request.Title, request.Author, request.Year);
         _logger.LogInformation("Created book {BookId}", book.Id);
         return CreatedAtAction(nameof(Get), new { id = book.Id }, book);
     }
 
-    [HttpPut("{id}")]
-    public IActionResult Update(int id, [FromBody] Book request)
+    /// <summary>
+    /// Updates a book.
+    /// </summary>
+    /// <param name="id">Id of the book to be updated.</param>
+    /// <param name="request">Data to fully replace existing.</param>
+    [HttpPut("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public ActionResult<Book> Update(int id, [FromBody] Book request)
     {
         var book = _bookStorage.Update(id, request);
         if (book == null)
@@ -56,7 +80,13 @@ public class BooksController : ControllerBase
         return Ok(book);
     }
 
-    [HttpDelete("{id}")]
+    /// <summary>
+    /// Deletes a book.
+    /// </summary>
+    /// <param name="id">Id of the book to delete.</param>
+    /// <response code="204">The book was deleted, or no book with this id existed</response>
+    [HttpDelete("{id:int}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
     public IActionResult Delete(int id)
     {
         bool isDeleted = _bookStorage.Delete(id);
