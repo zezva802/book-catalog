@@ -1,4 +1,4 @@
-using BookCatalog.Api.Entities;
+using BookCatalog.Domain.Entities;
 
 namespace BookCatalog.Api.Interfaces;
 

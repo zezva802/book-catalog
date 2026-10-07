@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace BookCatalog.Api.Entities;
+namespace BookCatalog.Domain.Entities;
 
 public class Book : IValidatableObject
 {
