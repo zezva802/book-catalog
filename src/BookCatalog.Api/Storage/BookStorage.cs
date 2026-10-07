@@ -1,4 +1,4 @@
-using BookCatalog.Api.Entities;
+using BookCatalog.Domain.Entities;
 using BookCatalog.Api.Interfaces;
 
 namespace BookCatalog.Api.Storage;
