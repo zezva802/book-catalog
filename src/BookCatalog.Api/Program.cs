@@ -1,5 +1,5 @@
-using BookCatalog.Api.Interfaces;
-using BookCatalog.Api.Storage;
+using BookCatalog.Application.Abstractions;
+using BookCatalog.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,7 +9,7 @@ builder.Services.AddControllers();
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 
-builder.Services.AddSingleton<IBookStorage, BookStorage>();
+builder.Services.AddSingleton<IBookRepository, InMemoryBookRepository>();
 
 var app = builder.Build();
 

@@ -1,6 +1,6 @@
 using BookCatalog.Domain.Entities;
-using BookCatalog.Api.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using BookCatalog.Application.Abstractions;
 
 namespace BookCatalog.Api.Controllers;
 
@@ -8,12 +8,12 @@ namespace BookCatalog.Api.Controllers;
 [Route("api/[controller]")]
 public class BooksController : ControllerBase
 {
-    private readonly IBookStorage _bookStorage;
+    private readonly IBookRepository _bookRepository;
     private readonly ILogger<BooksController> _logger;
 
-    public BooksController(IBookStorage bookStorage, ILogger<BooksController> logger)
+    public BooksController(IBookRepository bookRepository, ILogger<BooksController> logger)
     {
-        _bookStorage = bookStorage;
+        _bookRepository = bookRepository;
         _logger = logger;
     }
 
@@ -22,9 +22,11 @@ public class BooksController : ControllerBase
     /// Returns all books.
     /// </summary>
     [HttpGet]
-    public ActionResult<IEnumerable<Book>> GetAll()
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<ActionResult<IEnumerable<Book>>> GetAll(CancellationToken cancellationToken)
     {
-        return Ok(_bookStorage.GetAll());
+        var books = await _bookRepository.GetAllAsync(cancellationToken);
+        return Ok(books);
     }
 
     /// <summary>
@@ -34,9 +36,9 @@ public class BooksController : ControllerBase
     [HttpGet("{id:int}")]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public ActionResult<Book> Get(int id)
+    public async Task<ActionResult<Book>> Get(int id, CancellationToken cancellationToken)
     {
-        var book = _bookStorage.GetById(id);
+        var book = await _bookRepository.GetByIdAsync(id, cancellationToken);
         if (book == null)
         {
             _logger.LogInformation("Get - Not found book {BookId}", id);
@@ -52,9 +54,9 @@ public class BooksController : ControllerBase
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
-    public ActionResult<Book> Create([FromBody] Book request)
-    {
-        var book = _bookStorage.Create(request.Title, request.Author, request.Year);
+    public async Task<ActionResult<Book>> Create([FromBody] Book request, CancellationToken cancellationToken)
+    {   
+        var book = await _bookRepository.CreateAsync(request, cancellationToken);
         _logger.LogInformation("Created book {BookId}", book.Id);
         return CreatedAtAction(nameof(Get), new { id = book.Id }, book);
     }
@@ -68,16 +70,17 @@ public class BooksController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public ActionResult<Book> Update(int id, [FromBody] Book request)
+    public async Task<ActionResult<Book>> Update(int id, [FromBody] Book request, CancellationToken cancellationToken)
     {
-        var book = _bookStorage.Update(id, request);
-        if (book == null)
+        request.Id = id;
+        var isUpdated = await _bookRepository.UpdateAsync(request, cancellationToken);
+        if (!isUpdated)
         {
             _logger.LogInformation("Update - Not found book {BookId}", id);
             return NotFound();
         }
         _logger.LogInformation("Updated book {BookId}", id);
-        return Ok(book);
+        return Ok(request);
     }
 
     /// <summary>
@@ -87,9 +90,9 @@ public class BooksController : ControllerBase
     /// <response code="204">The book was deleted, or no book with this id existed</response>
     [HttpDelete("{id:int}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
-    public IActionResult Delete(int id)
+    public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken)
     {
-        bool isDeleted = _bookStorage.Delete(id);
+        bool isDeleted = await _bookRepository.DeleteAsync(id, cancellationToken);
         if (isDeleted)
         {
             _logger.LogInformation("Deleted book {BookId}", id);
