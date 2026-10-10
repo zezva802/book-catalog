@@ -1,4 +1,5 @@
 using BookCatalog.Application.Abstractions;
+using BookCatalog.Application.Services;
 using BookCatalog.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,6 +11,7 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
 builder.Services.AddSingleton<IBookRepository, InMemoryBookRepository>();
+builder.Services.AddScoped<IBookService, BookService>();
 
 var app = builder.Build();
 
