@@ -1,6 +1,6 @@
-using BookCatalog.Domain.Entities;
 using Microsoft.AspNetCore.Mvc;
 using BookCatalog.Application.Abstractions;
+using BookCatalog.Api.Dtos;
 
 namespace BookCatalog.Api.Controllers;
 
@@ -20,10 +20,10 @@ public class BooksController : ControllerBase
     /// </summary>
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<Book>>> GetAll(CancellationToken cancellationToken)
+    public async Task<ActionResult<IEnumerable<BookResponse>>> GetAll(CancellationToken cancellationToken)
     {
         var books = await _bookService.GetAllAsync(cancellationToken);
-        return Ok(books);
+        return Ok(books.Select(b => b.ToResponse()));
     }
 
     /// <summary>
@@ -34,14 +34,14 @@ public class BooksController : ControllerBase
     [HttpGet("{id:int}")]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<ActionResult<Book>> Get(int id, CancellationToken cancellationToken)
+    public async Task<ActionResult<BookResponse>> Get(int id, CancellationToken cancellationToken)
     {
         var book = await _bookService.GetByIdAsync(id, cancellationToken);
         if(book == null)
         {
             return NotFound();
         }
-        return Ok(book);
+        return Ok(book.ToResponse());
     }
 
     /// <summary>
@@ -52,10 +52,10 @@ public class BooksController : ControllerBase
     [HttpPost]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
-    public async Task<ActionResult<Book>> Create([FromBody] Book request, CancellationToken cancellationToken)
+    public async Task<ActionResult<BookResponse>> Create([FromBody] BookRequest request, CancellationToken cancellationToken)
     {   
-        var book = await _bookService.CreateAsync(request, cancellationToken);
-        return CreatedAtAction(nameof(Get), new {id = book.Id}, book);
+        var book = await _bookService.CreateAsync(request.ToEntity(), cancellationToken);
+        return CreatedAtAction(nameof(Get), new {id = book.Id}, book.ToResponse());
     }
 
     /// <summary>
@@ -68,13 +68,13 @@ public class BooksController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<ActionResult<Book>> Update(int id, [FromBody] Book request, CancellationToken cancellationToken)
+    public async Task<ActionResult<BookResponse>> Update(int id, [FromBody] BookRequest request, CancellationToken cancellationToken)
     {
-        request.Id = id;
-        var isUpdated = await _bookService.UpdateAsync(request, cancellationToken);
+        var book = request.ToEntity(id);
+        var isUpdated = await _bookService.UpdateAsync(book, cancellationToken);
         if (isUpdated)
         {
-            return Ok(request);
+            return Ok(book.ToResponse());
         }
         return NotFound();
     }
