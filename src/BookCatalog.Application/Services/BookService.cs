@@ -1,6 +1,8 @@
 using BookCatalog.Application.Abstractions;
 using Microsoft.Extensions.Logging;
 using BookCatalog.Domain.Entities;
+using BookCatalog.Application.Common;
+using BookCatalog.Application.Queries;
 
 namespace BookCatalog.Application.Services;
 public class BookService : IBookService
@@ -14,10 +16,9 @@ public class BookService : IBookService
         _logger = logger;
     }
 
-    public async Task<IEnumerable<Book>> GetAllAsync(CancellationToken cancellationToken)
+    public async Task<PagedResult<Book>> ListAsync(BookListQuery bookListQuery, CancellationToken cancellationToken)
     {
-        var books = await _bookRepository.GetAllAsync(cancellationToken);
-        return books;
+        return await _bookRepository.ListAsync(bookListQuery, cancellationToken);
     }
 
     public async Task<Book?> GetByIdAsync(int id, CancellationToken cancellationToken)

@@ -1,4 +1,6 @@
 using BookCatalog.Application.Abstractions;
+using BookCatalog.Application.Common;
+using BookCatalog.Application.Queries;
 using BookCatalog.Domain.Entities;
 
 namespace BookCatalog.Infrastructure;
@@ -19,12 +21,48 @@ public class InMemoryBookRepository : IBookRepository
         }
     }
 
-    public Task<IEnumerable<Book>> GetAllAsync(CancellationToken cancellationToken)
+
+    public Task<PagedResult<Book>> ListAsync(BookListQuery query, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         lock (_lock)
         {
-            return Task.FromResult<IEnumerable<Book>>(_books.Values.ToList());
+            IEnumerable<Book> books = _books.Values;
+
+            //filter
+            if(query.Title is not null)
+            {
+                books = books.Where(b => b.Title.Contains(query.Title, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if(query.Author is not null)
+            {
+                books = books.Where(b => b.Author is not null && b.Author.Contains(query.Author, StringComparison.OrdinalIgnoreCase));
+            }
+
+            if(query.YearFrom is not null)
+            {
+                books = books.Where(b => b.Year >= query.YearFrom);
+            }
+
+            if(query.YearTo is not null)
+            {
+                books = books.Where(b => b.Year <= query.YearTo);
+            }
+
+
+            //count
+            var totalCount = books.Count();
+
+            //sort
+            var items = books
+                    .OrderBy(b => b.Title).ThenBy(b => b.Id)
+                    .Skip((query.Page - 1) * query.PageSize)
+                    .Take(query.PageSize)
+                    .ToList();
+
+
+            return Task.FromResult(new PagedResult<Book>(items, totalCount, query.Page, query.PageSize));
         }
     }
 
