@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using BookCatalog.Application.Abstractions;
 using BookCatalog.Api.Dtos;
+using BookCatalog.Application.Common;
 
 namespace BookCatalog.Api.Controllers;
 
@@ -16,14 +17,17 @@ public class BooksController : ControllerBase
 
 
     /// <summary>
-    /// Returns all books.
+    /// Returns a page of books, optionally filtered by title, author and year range.
     /// </summary>
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<BookResponse>>> GetAll(CancellationToken cancellationToken)
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<PagedResult<BookResponse>>> List(
+        [FromQuery] BookListRequest request,
+        CancellationToken cancellationToken)
     {
-        var books = await _bookService.GetAllAsync(cancellationToken);
-        return Ok(books.Select(b => b.ToResponse()));
+        var pagedResult = await _bookService.ListAsync(request.ToQuery(), cancellationToken);
+        return Ok(pagedResult.ToResponse());
     }
 
     /// <summary>
