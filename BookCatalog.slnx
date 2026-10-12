@@ -6,6 +6,7 @@
     <Project Path="src/BookCatalog.Infrastructure/BookCatalog.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/BookCatalog.Api.Tests/BookCatalog.Api.Tests.csproj" />
     <Project Path="tests/BookCatalog.Application.Tests/BookCatalog.Application.Tests.csproj" />
   </Folder>
 </Solution>
