@@ -20,7 +20,9 @@ public record BookRequest : IValidatableObject
         {
             yield return new ValidationResult("Author name can not be only spaces", [nameof(Author)]);
         }
-        int allowedYear = DateTime.UtcNow.Year + 1;
+        var timeProvider = context.GetService<TimeProvider>()
+            ?? throw new InvalidOperationException("TimeProvider is not registered.");
+        int allowedYear = timeProvider.GetUtcNow().Year + 1;
         if(Year > allowedYear)
         {
             yield return new ValidationResult($"Year must be no later than {allowedYear}", [nameof(Year)]);
