@@ -27,34 +27,10 @@ public class InMemoryBookRepository : IBookRepository
         cancellationToken.ThrowIfCancellationRequested();
         lock (_lock)
         {
-            IEnumerable<Book> books = _books.Values;
+            IEnumerable<Book> books = ApplyFilters(_books.Values, query);
 
-            //filter
-            if(query.Title is not null)
-            {
-                books = books.Where(b => b.Title.Contains(query.Title, StringComparison.OrdinalIgnoreCase));
-            }
-
-            if(query.Author is not null)
-            {
-                books = books.Where(b => b.Author is not null && b.Author.Contains(query.Author, StringComparison.OrdinalIgnoreCase));
-            }
-
-            if(query.YearFrom is not null)
-            {
-                books = books.Where(b => b.Year >= query.YearFrom);
-            }
-
-            if(query.YearTo is not null)
-            {
-                books = books.Where(b => b.Year <= query.YearTo);
-            }
-
-
-            //count
             var totalCount = books.Count();
 
-            //sort
             var items = books
                     .OrderBy(b => b.Title).ThenBy(b => b.Id)
                     .Skip((query.Page - 1) * query.PageSize)
@@ -74,7 +50,7 @@ public class InMemoryBookRepository : IBookRepository
             _counter += 1;
             book.Id = _counter;
             _books.Add(_counter, book);
-            return Task.FromResult<Book>(book);
+            return Task.FromResult(book);
         }
     }
 
@@ -86,18 +62,43 @@ public class InMemoryBookRepository : IBookRepository
             if (_books.ContainsKey(book.Id))
             {
                 _books[book.Id] = book;
-                return Task.FromResult<bool>(true);
+                return Task.FromResult(true);
             }
-            return Task.FromResult<bool>(false);
+            return Task.FromResult(false);
         }
     }
 
     public Task<bool> DeleteAsync(int id, CancellationToken cancellationToken)
-    {   
+    {
         cancellationToken.ThrowIfCancellationRequested();
         lock (_lock)
         {
-            return Task.FromResult<bool>(_books.Remove(id));
+            return Task.FromResult(_books.Remove(id));
         }
+    }
+
+    private static IEnumerable<Book> ApplyFilters(IEnumerable<Book> books, BookListQuery query)
+    {
+        if (query.Title is not null)
+        {
+            books = books.Where(b => b.Title.Contains(query.Title, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (query.Author is not null)
+        {
+            books = books.Where(b => b.Author is not null && b.Author.Contains(query.Author, StringComparison.OrdinalIgnoreCase));
+        }
+
+        if (query.YearFrom is not null)
+        {
+            books = books.Where(b => b.Year >= query.YearFrom);
+        }
+
+        if (query.YearTo is not null)
+        {
+            books = books.Where(b => b.Year <= query.YearTo);
+        }
+
+        return books;
     }
 }

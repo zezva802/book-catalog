@@ -41,7 +41,7 @@ public class BooksController : ControllerBase
     public async Task<ActionResult<BookResponse>> Get(int id, CancellationToken cancellationToken)
     {
         var book = await _bookService.GetByIdAsync(id, cancellationToken);
-        if(book == null)
+        if (book is null)
         {
             return NotFound();
         }
@@ -57,9 +57,9 @@ public class BooksController : ControllerBase
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<BookResponse>> Create([FromBody] BookRequest request, CancellationToken cancellationToken)
-    {   
+    {
         var book = await _bookService.CreateAsync(request.ToEntity(), cancellationToken);
-        return CreatedAtAction(nameof(Get), new {id = book.Id}, book.ToResponse());
+        return CreatedAtAction(nameof(Get), new { id = book.Id }, book.ToResponse());
     }
 
     /// <summary>

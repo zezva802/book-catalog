@@ -3,7 +3,7 @@ namespace BookCatalog.Domain.Entities;
 
 public class Book
 {
-    
+
     public int Id { get; set; }
 
     /// <summary>
