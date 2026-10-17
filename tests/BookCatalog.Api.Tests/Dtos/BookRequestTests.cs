@@ -43,27 +43,27 @@ public class BookRequestTests
     [Fact]
     public void Validate_WhenTitleIsTooLong_ReturnsTitleError()
     {
-        var request = new BookRequest {Title = new string('a', 201)};
+        var request = new BookRequest { Title = new string('a', 201) };
 
         var results = Validate(request);
-        
+
         Assert.Contains(results, r => r.MemberNames.Contains(nameof(BookRequest.Title)));
     }
 
     [Fact]
     public void Validate_WhenTitleIsMax_ReturnsNoErrors()
     {
-        var request = new BookRequest {Title = new string('a', 200)};
+        var request = new BookRequest { Title = new string('a', 200) };
 
         var results = Validate(request);
-        
+
         Assert.Empty(results);
     }
 
     [Fact]
     public void Validate_WhenAuthorIsWhiteSpace_ReturnsAuthorError()
     {
-        var request = new BookRequest { Title = "a", Author = "   "};
+        var request = new BookRequest { Title = "a", Author = "   " };
 
         var results = Validate(request);
 
@@ -73,7 +73,7 @@ public class BookRequestTests
     [Fact]
     public void Validate_WhenAuthorIsTooShort_ReturnsAuthorError()
     {
-        var request = new BookRequest { Title = "a", Author = "a"};
+        var request = new BookRequest { Title = "a", Author = "a" };
 
         var results = Validate(request);
 
@@ -83,7 +83,7 @@ public class BookRequestTests
     [Fact]
     public void Validate_WhenYearIsMinimum_ReturnsNoErrors()
     {
-        var request = new BookRequest {Title = "a", Year = -3500};
+        var request = new BookRequest { Title = "a", Year = -3500 };
 
         var results = Validate(request);
 
@@ -93,7 +93,7 @@ public class BookRequestTests
     [Fact]
     public void Validate_WhenYearIsBelowMinimum_ReturnsYearError()
     {
-        var request = new BookRequest {Title = "a", Year = -3501};
+        var request = new BookRequest { Title = "a", Year = -3501 };
 
         var results = Validate(request);
 

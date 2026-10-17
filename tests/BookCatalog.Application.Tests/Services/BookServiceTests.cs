@@ -100,5 +100,5 @@ public class BookServiceTests
         Assert.True(result);
     }
 
-    private static Book CreateBook(int id = 0) => new() {Id = id, Title = "Vepkhistkaosani", Author = "Shota Rustaveli", Year = 1200};
+    private static Book CreateBook(int id = 0) => new() { Id = id, Title = "Vepkhistkaosani", Author = "Shota Rustaveli", Year = 1200 };
 }

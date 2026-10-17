@@ -16,28 +16,25 @@ public sealed class GlobalExceptionHandler : IExceptionHandler
     {
         var traceId = Activity.Current?.Id ?? httpContext.TraceIdentifier;
 
-        // special case: client disconnected not a server error
-        if(exception is OperationCanceledException && httpContext.RequestAborted.IsCancellationRequested)
+        if (exception is OperationCanceledException && httpContext.RequestAborted.IsCancellationRequested)
         {
             _logger.LogInformation("Client aborted {Method} {Path}. TraceId: {TraceId}", httpContext.Request.Method, httpContext.Request.Path, traceId);
             return true;
         }
 
-        //job 1: log everything
         _logger.LogError(exception, "Unhandled exception for {Method} {Path}. TraceId: {TraceId}", httpContext.Request.Method, httpContext.Request.Path, traceId);
 
-        //job 2: a generic response, for client
         httpContext.Response.StatusCode = StatusCodes.Status500InternalServerError;
         var problem = new ProblemDetails
         {
             Status = StatusCodes.Status500InternalServerError,
             Title = "An unexpected error occurred.",
-            Extensions = {["traceId"] = traceId}
+            Extensions = { ["traceId"] = traceId }
         };
         await httpContext.Response.WriteAsJsonAsync(
-            problem, options:null, contentType:"application/problem+json", cancellationToken
+            problem, options: null, contentType: "application/problem+json", cancellationToken
         );
-        //job3 tell middleware its handled
+
         return true;
     }
 }
