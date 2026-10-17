@@ -3,6 +3,7 @@ using BookCatalog.Application.Queries;
 using BookCatalog.Domain.Entities;
 
 namespace BookCatalog.Application.Abstractions;
+
 public interface IBookService
 {
     Task<Book?> GetByIdAsync(int id, CancellationToken cancellationToken = default);

@@ -1,13 +1,12 @@
 ﻿using BookCatalog.Application.Abstractions;
 using BookCatalog.Application.Queries;
 using BookCatalog.Domain.Entities;
-using BookCatalog.Infrastructure;
 
 namespace BookCatalog.Infrastructure.Tests;
 
 public class InMemoryBookRepositoryTests
 {
-    private readonly IBookRepository _sut = new InMemoryBookRepository(); 
+    private readonly IBookRepository _sut = new InMemoryBookRepository();
 
     [Fact]
     public async Task ListAsync_WhenTitleFilterGiven_MatchesCaseInsensitiveSubstring()
@@ -32,7 +31,7 @@ public class InMemoryBookRepositoryTests
         );
         var result = await _sut.ListAsync(Query());
 
-        Assert.Equal(new[] {"Beowulf", "Dune", "The Hobbit"}, result.Items.Select(b => b.Title));
+        Assert.Equal(new[] { "Beowulf", "Dune", "The Hobbit" }, result.Items.Select(b => b.Title));
         Assert.Equal(3, result.TotalCount);
     }
 
@@ -47,7 +46,7 @@ public class InMemoryBookRepositoryTests
 
         var result = await _sut.ListAsync(Query(author: "frank"));
 
-        Assert.Equal(new[] {"Dune", "Dune Messiah"}, result.Items.Select(b => b.Title));
+        Assert.Equal(new[] { "Dune", "Dune Messiah" }, result.Items.Select(b => b.Title));
         Assert.Equal(2, result.TotalCount);
     }
 
@@ -63,7 +62,7 @@ public class InMemoryBookRepositoryTests
 
         var result = await _sut.ListAsync(Query(yearFrom: 1965));
 
-        Assert.Equal(new[] {"Dune", "Dune Messiah"}, result.Items.Select(b => b.Title));
+        Assert.Equal(new[] { "Dune", "Dune Messiah" }, result.Items.Select(b => b.Title));
         Assert.Equal(2, result.TotalCount);
     }
 
@@ -78,7 +77,7 @@ public class InMemoryBookRepositoryTests
 
         var result = await _sut.ListAsync(Query(title: "Dune", yearTo: 1965));
 
-        Assert.Equal(new[] {"Dune"}, result.Items.Select(b => b.Title));
+        Assert.Equal(new[] { "Dune" }, result.Items.Select(b => b.Title));
         Assert.Equal(1, result.TotalCount);
     }
 
@@ -95,7 +94,7 @@ public class InMemoryBookRepositoryTests
 
         var result = await _sut.ListAsync(Query(pageSize: 2));
 
-        Assert.Equal(2, result.Items.Count());
+        Assert.Equal(2, result.Items.Count);
         Assert.Equal(5, result.TotalCount);
 
     }
@@ -113,9 +112,9 @@ public class InMemoryBookRepositoryTests
 
         var result = await _sut.ListAsync(Query(pageSize: 2, page: 2));
 
-        Assert.Equal(new[] {"C", "D"}, result.Items.Select(b => b.Title));
+        Assert.Equal(new[] { "C", "D" }, result.Items.Select(b => b.Title));
         Assert.Equal(5, result.TotalCount);
-        
+
     }
 
     [Fact]
@@ -143,7 +142,7 @@ public class InMemoryBookRepositoryTests
 
         var result = await _sut.ListAsync(Query());
 
-        Assert.Equal(new int?[] {2021, 1965}, result.Items.Select(b => b.Year));
+        Assert.Equal(new int?[] { 2021, 1965 }, result.Items.Select(b => b.Year));
     }
 
     private async Task SeedAsync(params Book[] books)

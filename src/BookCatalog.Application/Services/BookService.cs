@@ -5,6 +5,7 @@ using BookCatalog.Application.Common;
 using BookCatalog.Application.Queries;
 
 namespace BookCatalog.Application.Services;
+
 public class BookService : IBookService
 {
     private readonly IBookRepository _bookRepository;
@@ -26,7 +27,7 @@ public class BookService : IBookService
         var book = await _bookRepository.GetByIdAsync(id, cancellationToken);
         if (book == null)
         {
-            _logger.LogInformation("Get - Not found book {BookId}", id);
+            _logger.LogInformation("Book {BookId} not found", id);
             return null;
         }
         return book;
@@ -44,7 +45,7 @@ public class BookService : IBookService
         var isUpdated = await _bookRepository.UpdateAsync(book, cancellationToken);
         if (!isUpdated)
         {
-            _logger.LogInformation("Update - Not found book {BookId}", book.Id);
+            _logger.LogInformation("Book {BookId} not found", book.Id);
             return false;
         }
         _logger.LogInformation("Updated book {BookId}", book.Id);
@@ -60,7 +61,7 @@ public class BookService : IBookService
         }
         else
         {
-            _logger.LogInformation("Delete - Not found book {BookId}", id);
+            _logger.LogInformation("Book {BookId} not found", id);
         }
 
         return isDeleted;
