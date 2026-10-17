@@ -17,15 +17,15 @@ public class BookService : IBookService
         _logger = logger;
     }
 
-    public async Task<PagedResult<Book>> ListAsync(BookListQuery bookListQuery, CancellationToken cancellationToken)
+    public async Task<PagedResult<Book>> ListAsync(BookListQuery query, CancellationToken cancellationToken)
     {
-        return await _bookRepository.ListAsync(bookListQuery, cancellationToken);
+        return await _bookRepository.ListAsync(query, cancellationToken);
     }
 
     public async Task<Book?> GetByIdAsync(int id, CancellationToken cancellationToken)
     {
         var book = await _bookRepository.GetByIdAsync(id, cancellationToken);
-        if (book == null)
+        if (book is null)
         {
             _logger.LogInformation("Book {BookId} not found", id);
             return null;
