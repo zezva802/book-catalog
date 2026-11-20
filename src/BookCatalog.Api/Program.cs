@@ -16,7 +16,6 @@ builder.Services.AddProblemDetails();
 
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddInfrastructure(builder.Configuration);
-builder.Services.AddSingleton<IBookRepository, InMemoryBookRepository>();
 builder.Services.AddScoped<IBookService, BookService>();
 
 var app = builder.Build();

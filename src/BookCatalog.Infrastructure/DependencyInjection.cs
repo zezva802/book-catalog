@@ -1,3 +1,4 @@
+using BookCatalog.Application.Abstractions;
 using BookCatalog.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -14,6 +15,7 @@ public static class DependencyInjection
         var connectionString = configuration.GetConnectionString("BookCatalog") ?? throw new InvalidOperationException("Connection string 'BookCatalog' is not configured.");
 
         services.AddDbContext<BookCatalogDbContext>(options => options.UseSqlServer(connectionString));
+        services.AddScoped<IBookRepository, EfBookRepository>();
 
         return services;
     }

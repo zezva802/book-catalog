@@ -14,6 +14,8 @@ internal sealed class BookConfiguration : IEntityTypeConfiguration<Book>
             t.HasCheckConstraint("CK_Books_Author_Min2Chars", "LEN([Author]) >= 2");
             t.HasCheckConstraint("CK_Books_Year_MinValue", "[Year] >= -3500");
         });
+
+        // DB enforces fixed invariants. So year <= nextyear stays in validation. it depends on current state, db clock would differ from timeprovider.
         builder.HasKey(b => b.Id);
 
         builder.Property(b => b.Title).HasMaxLength(200);
