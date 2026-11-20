@@ -1,84 +1,96 @@
 # Book Catalog Platform — Design Note
 
-*Living document. Week 1 version.*
+*Living document. Week 2.*
 
-## What I built
+## What it is
+- REST API for books: CRUD + paged, filtered list.
+- Validation, logging, one error format (ProblemDetails), Swagger.
+- Storage in memory (lost on restart) → database in week 3.
 
-A REST API for a book catalog. It supports creating, reading, updating and deleting books. Input is validated, every operation that changes data is logged, and the API is documented with Swagger. For now, books are stored in memory, so they are lost when the application restarts.
+## Structure
+| Project | Job |
+|---|---|
+| Api | HTTP ↔ use cases: routes, DTOs, request validation, status codes, error handler |
+| Application | Use cases (`BookService`), business rules, defines `IBookRepository` |
+| Domain | `Book` entity. References nothing |
+| Infrastructure | Implements `IBookRepository` (in memory) |
 
-## How it is structured
+- Dependencies point inward: Api → Application → Domain; Infrastructure → Application.
+- Projects, not folders → compiler enforces direction, cycles are build errors.
+- `Program.cs` = only place that knows concrete types.
+- Domain separate although tiny: week 3 adds Author, User, Loan.
 
-The solution has one project, `src/BookCatalog.Api`, split into folders:
+## Data access abstraction
+- `IBookRepository`: `GetByIdAsync`, `ListAsync(BookListQuery)`, `CreateAsync`, `UpdateAsync`, `DeleteAsync`.
+- Lives in Application (owner = user of it), implemented in Infrastructure → dependency inversion.
+- Hides: storage tech, query mechanism, concurrency (lock), lifetime/connections, id generation.
+- Contract beyond signatures: missing book → `null` / `false`, never throws; `TotalCount` = all matches; pages start at 1.
+- No `IQueryable`, no generic `IRepository<T>`, one list method with a query object.
+- Against it: EF's `DbSet`/`DbContext` already are repository/unit of work → duplication, hidden EF features and cost. Kept for swappable storage + DB-free unit tests.
 
-- **Controllers** — `BooksController`, which exposes the HTTP endpoints.
-- **Entities** — `Book`, the only model for now.
-- **Interfaces** — `IBookStorage`, the contract for storing books.
-- **Storage** — `BookStorage`, the in-memory implementation.
+## Validation rules
+- **Title** — required, 1–200. Needed to find/refer to a book; 200 covers real titles.
+- **Author** — optional (unknown authors exist). If present: 2–100, not only whitespace. 100 leaves room for several names; no one-letter names.
+- **Year** — optional (may be unknown). Negative = BCE. Min −3500 (just before earliest writing, ~3400–3200 BCE). Max next year (announced / late-year publications).
+- Fixed limits = attributes. Logic rules (next year, whitespace) = `IValidatableObject.Validate`; next year uses `TimeProvider`.
+- List request: page ≥ 1, pageSize 1–100, yearFrom ≤ yearTo.
+- Numbers sent as strings (`"1990"`) accepted — framework default, harmless.
 
-`Program.cs` is the entry point. All services are registered there, and the controller receives its dependencies through constructor injection.
-
-A request goes through routing, then model binding and validation. If validation fails, `[ApiController]` returns a 400 before my code runs. Otherwise the controller calls `IBookStorage` and turns the result into an HTTP response. The controller depends on the interface, not on the concrete class.
-
-## Decisions and why
-
-### Storage: a Dictionary in memory, registered as a singleton
-
-Books live in a `Dictionary<int, Book>` inside `BookStorage`, which gives fast lookup by id. `BookStorage` is registered as a **singleton**, so every request uses the same instance and the same data. Scoped would create a new instance for every HTTP request, and transient a new one every time it is injected. In both cases the books would be gone by the next request.
-
-### Thread safety: one lock around every operation
-
-Requests run in parallel, and a singleton is shared between them. Without protection, two requests could get the same id from the counter, or one request could read the dictionary while another is changing it. Every method therefore runs inside the same lock, so only one thread at a time can use the storage.
-
-`GetAll` copies the values with `ToList()` while it still holds the lock, so the caller gets a snapshot and never reads the dictionary after the lock is released.
-
-**Known condition:** the lock protects the dictionary, not the `Book` objects inside it. `GetById` returns the stored object itself, and `Update` stores the object it received from the controller. This is safe as long as no code modifies a stored `Book` directly. Today `Update` always replaces the whole object instead of editing it. Week 2 DTOs will remove this condition, because the storage will keep its own copies.
-
-### Validation rules
-
-- **Title** — required, 1–200 characters. Books must have a title so people can find and refer to them. Maximum 200 is reasonable length for books, used standard for validation, most of them does not have that long title.
-- **Author** — optional, because books with unknown authors exist. If present: 2–100 characters, and not only whitespace. Some works have multiple authors, having upper bound 100 takes it into account. Authors do not have one letter name, so minimum length is 2.
-- **Year** — optional, because it may be unknown. Negative numbers are BCE. The minimum is -3500, just before the earliest known writing (about 3400–3200 BCE), so no real work can be older. The maximum is next year, because books can be announced before publication or published late in the year.
-
-Fixed limits are validation attributes. Rules that need logic (the next-year limit and the whitespace check) are in `Validate` (`IValidatableObject`). Numbers sent as strings (`"1990"`) are accepted; I left the framework default because it causes no harm.
-
-### HTTP behaviour
-
+## HTTP behaviour
 | Endpoint | Responses |
 |---|---|
-| GET all | 200 |
+| GET list | 200, 400 |
 | GET by id | 200, 404 |
-| POST | 201 with `Location` header, 400 |
+| POST | 201 + `Location`, 400 |
 | PUT | 200, 400, 404 |
 | DELETE | 204 |
 
-- **Route constraint `{id:int}`** — a non-numeric id does not match the route, so the client gets 404 from routing instead of 400 from model binding. The behaviour is the same for GET, PUT and DELETE.
-- **DELETE is idempotent** — it returns 204 even if the book did not exist. Deleting twice gives the same result, so a client can safely retry.
-- **PUT is a full replacement** — fields not sent are cleared.
-- **Id is assigned by the server** — an `id` in the POST or PUT body is ignored. PUT always uses the id from the route.
-- All errors use the ProblemDetails format, which `[ApiController]` provides automatically.
+- `{id:int}` → non-numeric id = 404 from routing (same for GET, PUT, DELETE).
+- DELETE idempotent → 204 even if the book didn't exist; safe to retry.
+- PUT = full replacement; fields not sent are cleared; id from route only.
+- Client can't set `Id` (not in `BookRequest`).
+- All errors = ProblemDetails; unexpected → generic 500 + `traceId`.
 
-### Logging
+## Decisions
+- **Async interface now** — Application and tests compile against it; changing it in week 3 would touch everything. Cost: `Task.FromResult` in memory. `CancellationToken` last.
+- **Service layer** — use cases, rules, business logging, no HTTP. Thin now; home for lending rules + transactions.
+- **`IBookService`** — controller depends on abstraction. Cost: one file, one implementation.
+- **Not found = `null`/`bool`, not exceptions** — expected outcome. Revisit when there are several expected failures (not found vs already borrowed).
+- **DTOs in Api, manual mapping** — stops over-posting (client-set Id), decouples JSON from entity, avoids leaks/cycles later. Extension methods: compile-checked, explainable.
+- **One `BookRequest` for POST + PUT** — PUT is full replacement, same fields; splitting later is cheap.
+- **Pagination** — offset (page + size). Sort Title then Id. Filter → count → sort → skip/take, in the repository (→ SQL in week 3). Page size max 100. Invalid input → 400; page past end → 200, empty, real total. Weakness: drifts if data changes between pages.
+- **Filters** — title/author contains, case-insensitive; years inclusive; no-year books excluded; AND.
+- **Total count** — second query in a DB, can't stop early. Fallback: "has next page".
+- **Errors** — expected → 4xx where it happens. Unexpected → `GlobalExceptionHandler` (first in pipeline): Error log with method, path, traceId; client gets generic 500 + traceId. No stack traces to clients (paths, versions = reconnaissance). Client disconnect ≠ 500.
+- **`TimeProvider`** — "year ≤ next year" testable with a frozen clock. Missing registration throws, no silent fallback.
+- **Lifetimes** — repo Singleton (state in instance), service Scoped. Week 3: EF repo Scoped.
+- **Logging** — message templates; business events in service at Information (incl. not found — normal, not Warning); unexpected errors logged once.
+- **Other** — Swagger Development only (exposes whole API surface); no HTTPS redirection (proxy handles HTTPS).
 
-I use the built-in `ILogger<T>` with message templates (`"Created book {BookId}"`), not string interpolation. That way `BookId` is stored as a separate, searchable property, and no string is built when the level is disabled. I log IDs, not whole objects.
+## Testing
+- Application.Tests: `BookService` (NSubstitute), `PagedResult`.
+- Api.Tests: `BookRequest`, `BookListRequest`, mappings.
+- Infrastructure.Tests: `ListAsync`.
+- Logic tested, wiring (controller, handler, `Program.cs`) not → week 4 integration.
+- Service tests solitary: 7 stubs (results), 1 mock (`DeleteAsync` must call repo).
+- Both outcomes per method; boundaries for validation; data where right ≠ wrong (unsorted seeds, more matches than a page).
+- No external deps, fresh instance per test, fake clock.
+- Not tested on purpose: in-memory Get/Update/Delete — replaced in week 3.
+- Verified by breaking code: count-of-page bug → exactly 3 paging tests failed.
+- Coverage 56% (no generated code): logic/validation/mapping 85–100%, HTTP 0% by design. Coverage = lines ran, not checked (`Book` 100% with no tests).
+- Week 3: service/validation/mapping tests unaffected; in-memory repo tests go with the class; EF repo untested until week 4 (reuse repo tests as contract tests).
 
-Create, update, delete and not-found cases are logged at **Information**. I first logged not-found at Warning, assuming a correct frontend never produces a 404. I changed it, because 404s also happen normally: an old bookmark, a book deleted in another tab, clients other than my frontend. Warnings that fire in normal situations teach you to ignore Warnings.
+## Painful to change from week 1
+- Hardest: dependency inversion. One project, no business layer, `IBookStorage` next to the controller → ownership never decided. Got project references backwards first.
+- Entity = API contract → POST had to reset `Id`; DTOs touched controller, validation, entity.
+- Sync storage interface → every signature changed.
+- Clock read in validation → rule had to change to be testable.
+- Lesson: week 1 had one thing doing several jobs (`Book`: entity + contract + validation; controller: HTTP + logging + storage). Since splitting, each change touches one layer.
 
-Unhandled exceptions are logged at Error by the framework itself. I tested this with a temporary exception, so I did not add try/catch blocks that would only log the error a second time.
-
-### HTTPS
-
-I removed HttpsRedirection, that gave console warnings and is not actually recomended by microsoft to use as a protection. In real deployments HTTPS is usually handled by a proxy in front of the app, and redirection is weak protection for an API.
-
-### Swagger
-
-The OpenAPI document comes from Microsoft's built-in generator, and Swagger UI shows it. Both are only enabled in Development, because the document reveals the whole API surface. Each endpoint declares its possible responses with `[ProducesResponseType]`, and XML comments describe the behaviour the generator cannot see, such as the rules inside `Validate`. Disabled CS1592 warnings indicating descriptions on each method, even the ones not needed (constructors, classes), in .csproj
-
-## What I would improve with more time
-
-- **The entity is also the API contract.** One `Book` class is both my internal model and what clients send and receive. Because of that, `id` appears in the POST schema, its description ("ignored") also shows on responses where it makes no sense, the storage keeps the controller's object, and any internal field I add would be exposed automatically. Week 2 DTOs will separate them.
-- **Production 500s have an empty body** instead of ProblemDetails. Clients should get the same error format everywhere, with a `traceId` and no internal details. Week 2 adds centralized error handling.
-- **The thread-safety condition** described above.
-- **`Validate` reads the system clock directly**, which will make the next-year rule hard to test.
-- **GET all returns everything**, with no pagination.
-- **Data is lost on restart.** Week 3 moves storage to a database.
-
+## Known limitations
+- Data lost on restart.
+- Repo shares `Book` references with callers (lock covers dictionary, not books).
+- `ListAsync` filters twice (count + page).
+- Offset drift.
+- No integration tests yet.
+- Template comments left in `Program.cs`.
